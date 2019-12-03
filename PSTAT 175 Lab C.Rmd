@@ -1,0 +1,239 @@
+---
+title: "PSTAT 175 Lab C"
+author: "Yanjie Qi"
+date: "2019/10/27"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+##1
+Load the required library and dataset:
+```{r}
+library(survival)
+data(kidney)
+attach(kidney)
+```
+
+## (a)
+Plot the KM estimate:
+```{r}
+## vector
+kid.time <- kidney$time
+kid.cns <- kidney$status
+kid.surv <- Surv(kid.time, kid.cns)
+kid.fit <- survfit(kid.surv ~ 1)
+## plot
+plot(kid.fit,xlab="Survival Time(in days)",
+     ylab="Estimated Survival Probability")
+```
+
+## (b)
+Perform Logrank test:
+```{r}
+survdiff(kid.surv ~ sex)
+```
+The p-value is 0.004, which means that there is significant difference between male and female.
+
+## (c)
+```{r}
+kid.fits <- survfit(kid.surv ~ sex, data = kidney)
+plot(kid.fits,xlab="Survival Time(in days)",
+     ylab="Estimated Survival Probability", col=c("red","blue"))
+legend("topright",legend=c("1=male","2=female"),
+       col=c("red","blue"),pch=rep(19,2))
+```
+
+As shown by the plot above, there is obvious gap between male line and female line especially between time 10 to 350 so that we could confirm the significant difference between male and female.
+
+## (d)
+Use coxph to compare male and female group:
+```{r}
+cox0 <- coxph(kid.surv ~ sex, data = kidney)
+cox0
+```
+```{r}
+#Confidence intervals for each coefficient:
+confint(cox0,level=.95)
+```
+```{r}
+#Confidence intervals for the hazard ratios:
+exp(confint(cox0,level=.95))
+```
+The coefficient of kidney$sex is -0.8377, and the hazard ratio is 0.4327. From above, we could know p-value is 0.00474 which is < 0.05. Therefore, we reject the H0. Hence, there is significant difference between the hazard propotion of two sexes. Basically, female hazard propotion (probabilities of going a month without an infection) is 0.8377 lower than male hazard propotion, and the 95% confidence interval for it would be (0.241936,0.7738447)
+
+## (e)
+```{r}
+# first plot the KM estimate for male
+par(mar = c(5,5,4,2))
+plot(survfit(kid.surv ~ 1,
+     subset = (kidney$sex == 1)),col = c("blue","green","orange"),
+     xlab = "Survival Time in Days", 
+     ylab = expression(hat(S)(t)))
+```
+```{r}
+# Then Remove the ob in row 42
+kidney1 <- kidney[-c(42),]
+plot(survfit(Surv(kidney1$time,kidney1$status)~1,
+     subset = (kidney1$sex==1)), col = c("blue","green","orange"),
+     xlab = "Survival Time in Days",
+     ylab = expression(hat(S)(t)))
+```
+From the plots above, we could knwo the observation in row 42 is an outlier, and removing it would make the survival plot more approriate.
+
+## 2
+```{r}
+data(mgus)
+attach(mgus)
+mgus.time <- mgus$futime
+mgus.cns <- mgus$death
+mgus.surv <- Surv(mgus.time,mgus.cns)
+```
+## (a)
+Set up a Hypothesis Test:
+H0: There is a significant difference between the two sexes 
+vs.
+Ha: there is no significant difference between the two sexes
+```{r}
+#include 'sex'
+cox0 <- coxph(mgus.surv~sex, data = mgus)
+cox0
+```
+As shown above, p-value is 0.0128, which is smaller than .05, meaning that we could conclude that there is a significant difference between the two sexes 
+
+## (b)
+H0: There is no siginificant difference between two sexes
+vs.
+Ha: There is a siginificant difference between two sexes
+Use Coxph function to find the p-value:
+```{r}
+cox2 <- coxph(mgus.surv~age+alb+creat+hgb+mspike
+             +sex, data=mgus)
+cox2
+```
+the p-value is 0.21298, which is greater than .05, so there is no statistically significant difference between 2 sexes.
+
+## (c)
+In part (a), we did not exclude covariates to decrease their effect; however, we use the covariates age, alb, creat, hgb, and mspike to control for differences in the groups. Hence, we found that there is no significant difference between the sexes after using the covariates to control for differences.
+
+## (d)
+Since from part b that p-value of age and creat are smaller than 0.05, we set age and creat as covariates:
+```{r}
+cox4 <- coxph(mgus.surv~age+creat, data=mgus)
+cox4
+```
+As presented above, p-value is <2.2e-16 < 0.05, which means there is significant difference between two sexes with the covariate age and creat
+
+## 3
+## (a)
+```{r}
+## The following is another solution which I have no idea if it is right or not
+## Since the plot the following gives is different from the one in the next 
+## chunk. If the solution in the next chunk is not right, Please consider this ## solution. Also, the p-value and parameter in part b and c would also be 
+## changed.
+
+## nmgus.a <- mgus
+##nmgus.time <- for (i in seq(1:nrow(nmgus.a))){
+##  if (is.na(nmgus.a[i,6]==TRUE)){
+##    nmgus.a[i,6]<-mgus$futime[i]
+##  }
+##}
+##nmgus.b <- mgus
+##nmgus.status <- for (i in seq(1:nrow(nmgus.b))) {
+##  if (is.na(nmgus.b[i,6]==TRUE)){ 
+##    nmgus.b[i,6] <- 0
+##  }else{
+##    nmgus.b[i,6] <- 1
+##  }
+##}
+##nmgus.a$pctime
+##nmgus.b$pctime
+##nmgus.surv = Surv(nmgus.a$pctime,nmgus.b$pctime)
+##nmgus.fit <- survfit(nmgus.surv~1)
+##plot(nmgus.fit, main = "Kaplan-Meier Curves \n for the time until onset of serious blood diseases",
+##     xlab = "Survival Time (until death) \n in days",
+##     ylab = expression(hat(S)(t)))
+
+```
+
+```{r}
+nmgus=mgus
+for  (i in seq(1:nrow(nmgus))){
+  if (is.na(nmgus[i,6]) == TRUE){
+    nmgus[i,6] <- 0
+  }else{
+    nmgus[i,6] <- 1
+  }
+}
+nmgus.surv <- Surv(nmgus$futime,nmgus$pctime)
+nmgus.fit <- survfit(nmgus.surv~1)
+plot(nmgus.fit, main = "Kaplan-Meier Curves \n for the time until onset of serious blood diseases",
+     xlab = "Survival Time (until death) \n in days",
+     ylab = expression(hat(S)(t)))
+```
+
+## (b)
+Use Coxph function to see if mspike has an effect on the time until a further disease is present:
+```{r}
+nmgus <- mgus
+cox6 <- coxph(nmgus.surv~nmgus$mspike,data=nmgus)
+cox6
+```
+As shown above, we know that p-value = 0.06206 > 0.05. Therefore, we can conclude that mspike has no effect on the time until a further disease is present, and mspike is not significant.
+
+## (c)
+```{r}
+#include 'mspike'
+cox7 <- coxph(nmgus.surv~age+mspike+sex+alb+creat+hgb, data=nmgus)
+#not include 'mspike'
+cox8 <- coxph(nmgus.surv~age+sex+alb+creat+hgb, data=nmgus)
+```
+```{r}
+#Compute the Likelihood Ratio
+lrt3 <- 2*(cox7$loglik[2]-cox8$loglik[2])
+lrt3
+```
+```{r}
+#Approximate p with the Chi-squared distribution
+pchisq(lrt3,df=length(coef(cox7))-length(coef(cox8)),lower.tail=FALSE)
+```
+As shown above, p-value is 0.0732, which is > 0.05. Therefore, we could conclude that mspike has no effect on the time until a further disease is present.
+
+## 4
+
+## (a)
+```{r}
+mgus.surv <- Surv(mgus.time,mgus.cns)
+plot(survfit(mgus.surv~mgus$sex),lwd=2,col=c(2,4),
+fun="cloglog",
+main = 'The -log-log Graphs of the Estimated Survival Functions \n for Male and Female Subjects',
+xlab="Time until Death \n in days",ylab="log(S(t))")
+legend('topleft',c("male","female"),fill = c("red","blue"))
+```
+There is no evidence that PH model is not approriate because the curves do not cross each other.
+
+## (b)
+```{r}
+cox_1 <- coxph(mgus.surv ~ sex, subset = (mgus$sex == "female"), data = mgus)
+par(mar = c(5,5,4,2))
+plot(survfit(cox_1),
+     main = "CoxPH Model for Female Subjects",
+     xlab = "Survival Time (in Days)",
+     ylab = expression(hat(S)(t)),
+     col = c("blue","green","orange"))
+```
+```{r}
+plot(survfit(mgus.surv~1, subset = (mgus$sex == "female")),
+     main = "Kaplan-Meier Curves \n for Female Subjects",
+     xlab = "Survival Time (in Days)",
+     ylab = expression(hat(S)(t)),
+     col = c("blue","green","orange"))
+```
+## (c)
+```{r}
+z = coxph(mgus.surv ~ sex, data = mgus)
+cox.zph(z)
+```
+From the result above, we could know p-value is 0.216 which is > 0.05; therefore, the model has no statistically significant difference with the propotional hazards model. Hence, we are justified in using the proportional hazards assumption in our modeling of the effect of sex, and since the result is not significant, we could conclude that the Cox PH Model is approriate.
