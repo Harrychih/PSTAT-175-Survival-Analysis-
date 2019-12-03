@@ -1,0 +1,227 @@
+---
+title: "PSTAT 175 LAB D"
+author: "Yanjie Qi"
+date: "11/20/2019"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+To Set Up
+```{r}
+library(tidyverse)
+library(survival)
+library(ggplot2)
+```
+## 1. 
+The data set that we used in lecture hern.txt contains information about treatment participation for
+heroin addicts in two clinics. In this problem, I want you to use likelihood ratio tests.
+```{r}
+hern <- read.csv("hern.txt", sep="")
+```
+
+## (a).
+One of the covariates in the data, Prison, is a indicator of whether the subject had served prison time. Fit a Cox PH model to test whether prison has a significant effect on the time spent in the clinic.
+```{r}
+fit = coxph(Surv(Time,Status)~Prison,data=hern)
+summary(fit)
+```
+According to the table above, we have p-value = 0.3 which is larger than 0.05, meaning that Prison is not statisitcally siginificant.
+
+## (b).
+The column Clinic tells us which clinic the subject was at. Repeat your test regarding the effect of prison time, but control for the possible confounding effect of the clinic.
+
+```{r}
+fit2 = coxph(Surv(Time,Status)~Prison+Clinic,data=hern)
+fit3 = coxph(Surv(Time,Status)~Clinic,data=hern)
+lrt = 2*(fit2$loglik[2]-fit3$loglik[2]) 
+```
+
+```{r}
+## calculate the df
+df = length(coef(fit2)) - length(coef(fit3))
+df ##output the df = 1
+```
+```{r}
+## calculate the p-value
+pchisq(lrt,df=1,lower.tail = FALSE)
+```
+Since p-value = 0.0949 > .05, we could conclude that prison has no significant effect on the time.
+
+## (c).
+Use a complementary log-log plot to visualize whether the Cox PH assumption is appropriate for modeling the effect of the clinics. Describe you conclusions from looking at the plot.
+
+```{r}
+hern.fit = survfit(Surv(Time,Status)~Clinic,data=hern)
+plot(hern.fit,fun="cloglog",xlab = "Time", ylab = "log(-log(S(t)))",col = 3:4,lwd=2,xlim=c(1,12000))
+legend("topright",legend = c("Clinic 1","Clinic 2"),pch = rep(15,4),col = 3:4)
+```
+From the plot, we could see that two curves are not parallel and tend to diverge in the end, so we could conclude that the Cox PH assumption is not appropriate for modeling the effect of the clinics.
+
+## (d). 
+Model the effect of prison when you treat the clinics as stratified confounding variables. What do you conclude? Describe in your own words the difference between this model and the model in part (b).
+```{r}
+fitSC <- coxph(Surv(Time,Status)~Prison+strata(Clinic),data=hern)
+summary(fitSC)
+```
+From the table above, we have p-value for prison = 0.045 < 0.05 so that we could conclude that prison is significant with the effect of clinics as stratified confounding variables.
+
+## (e).
+Perform a test to see if there is a significant interaction between the prison variable and the clinic variable. We still want to use a stratified model.What do you conclude? Explain what the interaction term means. 
+
+First, fit a model with both Prison and Clinic, then fit a second model with only Clinic. Second, preform the LRT such that: 
+H0: the reduced model is preferred (model without Prison) Ha: the full model is preferred (model with Prison).
+```{r}
+fitSC.int = coxph(Surv(Time,Status)~Prison*strata(Clinic),data=hern)
+summary(fitSC.int)
+```
+Then, perform a likelihood ratio test to compare between SC model with and without the interaction term. H0:
+The reduced model is preferred (without interaction term) Ha: The full model is preferred (with interaction
+term).
+```{r}
+#Compute GLRT statistic:
+lrt.int = 2*(fitSC.int$loglik[2]-fitSC$loglik[2])
+lrt.int ## 0.7183184
+#Compute the df:
+df.int =length(coef(fitSC.int)) - length(coef(fitSC))
+df.int ## 1
+#p-value:
+pchisq(lrt.int,df=1,lower.tail = FALSE)
+```
+Since p-value is 0.3966961 which is larger than 0.05, we fail to reject the null hypothesis and the interaction is not significant. Therefore, we could conclude that effect of prison on time does not depend on Clinic.
+
+## 2. 
+The data set retire has information on the life expectancy of individuals living in a senior care facility. We begin by modeling time column which is the survival time in months spent at the facility. The indicator column death will be used as our status variable. We would like to model the difference between men and women so there is a column gender which is 1 for men and 2 for women.
+```{r}
+## Load the Data Set
+retire <- read.table("retire.txt",header=TRUE,skip=2)
+```
+## (a). 
+Use a Cox Proportional Hazards model to test whether there is a significant difference between men and women. Report the likelihood ratio statistic and the appropriate P value.
+
+```{r}
+retire.fit <- coxph(Surv(time,death)~gender,data=retire)
+summary(retire.fit)
+```
+From above, we  have that Likelihood ratio test statistic = 5.78 on df =1 and the p-value for two gender is 0.02 which is < 0.05 so that we could conclude that there is a statistically significant difference between men and women. 
+
+## (b). 
+Fit another model that adjusts for the confounding variable ageentry which gives the age in months of the subject when they entered the facility. Use the anova function to calculate the appropriate likelihood ratio test. Do you come to the same conclusion as in part (a)? How do you explain any difference?
+
+```{r}
+retire.fit1 <- coxph(Surv(time,death)~gender+ageentry,data=retire)
+retire.fit2 <- coxph(Surv(time,death)~ageentry,data=retire)
+anova(retire.fit1)
+```
+From above, we notice that p-value for ageentry = 3.81e-11 which means that the confounding variable ageentry has significant impact in the model.
+```{r}
+anova(retire.fit2,retire.fit1)
+```
+From the anova table above, we could have the p-value = 0.03406 < 0.05, which means that gender has a significant effect on the time. This is as same as what we concluded in part a. The difference existed is because that we did not consider the ageentry while we do consider it in this part.
+
+## (c).
+Fit a model with an interaction between age and gender. What do you conclude?
+```{r}
+retire.fitint <- coxph(Surv(time,death)~age*gender,data = retire)
+summary(retire.fitint)
+```
+From above, we have p-value for the interaction of age and gender = 0.001 < 0.05 so we could conclude that the interaction is statistically siginificant.
+
+Then we have the hypothesis test:
+H0: The model without interation is preferred vs. HA: The model with interation is preferred.
+```{r}
+retire.fitnlint <- coxph(Surv(time,death)~age+gender,data = retire)
+summary(retire.fitnlint)
+```
+```{r}
+lrtSC = 2*(retire.fitint$loglik[2]-retire.fitnlint$loglik[2])
+lrtSC
+```
+Calculate the df:
+```{r}
+dfSC = length(coef(retire.fitint)) - length(coef(retire.fitnlint))
+dfSC # = 1
+```
+Calculate the p-value:
+```{r}
+pchisq(lrtSC,df=1,lower.tail = FALSE)
+```
+From above, we know that p-value = 0.0590063 > 0.05, so we accept the null hypothesis that the model without interaction is prefered. 
+
+## (d).
+Plot complementary log-log plot comparing the effect of gender on the survival time. Do you think the proportional hazards assumption is reasonable for this model?
+```{r}
+retire.fit5 <- survfit(Surv(time,death)~gender,data=retire)
+plot(retire.fit5,fun="cloglog",xlab = "Time", ylab = "log(-log(S(t)))",col = 3:4,lwd = 2)
+legend("topright",legend = c("male","female"),pch = rep(15,4),col = 3:4)
+```
+From the plot we have above, there is no interaction between two diagrams so that we could conclude that the propotional hazards assumption is reasonable because we could see that hazards are propootional over time.
+
+## (e).
+Explain clearly why we chose to use ageentry as our covariate and not age which is the age of the subject when the event occurred.
+
+We use ageentry because that age only tell us the events time after entering the facility and we have no idea the age when they entered the facility. This ageentry will help us to figure out that would survival probability be affected by the age when entering the facility.
+
+## 3.
+Using the same retire data set, I want to fit a Generalized Cox Model where the effect of gender is different before and after 48 months.
+
+## (a).
+Use the survSplit function to construct a new data frame with additional rows that split the time variable into before and after 48 months.
+
+```{r}
+## change 0s to .01, because otherwise survSplit won't run
+z<-retire$time==0
+for(i in 1:length(z)){
+ if (z[i]==TRUE){
+ retire$time[i]=.01
+ }
+ }
+```
+```{r}
+## construct a new data frame that split the time variable into before and after 48 months
+retire.Splt <- survSplit(Surv(time,death)~., retire, cut = 48,
+                            episode = "timegroup")
+## show the first 5 rows of the new data set
+head(retire.Splt,5)
+```
+
+## (b).
+Use coxph to model the effect of gender including a change of parameter at 48 months. Please include the age at entry if that is still appropriate. Use our likelihood ratio test to determine if gender is still significant in this model.
+
+```{r}
+retire.fit3 <- coxph(Surv(tstart,time,death)~gender*strata(timegroup)+ageentry,
+                     data = retire.Splt)
+summary(retire.fit3)
+```
+
+```{r}
+retire.fit4 <- coxph(Surv(tstart,time,death)~ageentry,
+                     data = retire.Splt)
+summary(retire.fit4)
+```
+```{r}
+anova(retire.fit3,retire.fit4)
+```
+From above, we have p-value = 0.06747 > 0.05, so conclude that gender is not significant in this model after split time into before and after 48 months.
+
+## (c).
+Give 95% confidence intervals for the hazard ratio for men before and after the 48 month cut off.
+
+```{r}
+retire.male <-coxph(Surv(tstart,time,death)~ageentry+(gender==1)*strata(timegroup==1),data=retire.Splt)
+exp(confint(retire.male,level = 0.95))
+
+retire.male2 <- coxph(Surv(tstart,time,death)~ageentry+(gender==1)*strata(timegroup==2),data=retire.Splt)
+exp(confint(retire.male2,level = 0.95))
+
+```
+So 95% confidence intervals for the hazard ratio for men before and after the 48 month cut off is (0.7022516 2.771629) and (0.3607987 1.423991).
+
+## (d).
+Would you conclude that it is important to consider a change in the effect of gender before and after 4 years in the retirement facility?
+```{r}
+retire.fit6 <- coxph(Surv(tstart,time,death)~gender:strata(timegroup) + ageentry,data=retire.Splt)
+summary(retire.fit6)
+```
+Based on the summary we had before, we could see that when in the timegroup=1(before 4 years), gender is significant (p-value=0.0311) while it is not significant in the timegroup=2(after 4 years) (p-value=0.2872).Therefore, it is important to consider a change in the effect of gender before and after 4 years in the retirement facility.
