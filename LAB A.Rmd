@@ -1,0 +1,100 @@
+---
+title: "Lab A"
+author: "Yanjie Qi"
+date: "2019/10/7"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## LAB A
+
+## 1
+## Load Library
+```{r}
+library(survival)
+library(tidyverse)
+```
+
+## Read the the data
+```{r}
+vets <- read.table("vets.txt", quote="\"", comment.char="")
+head(vets)
+```
+In this case, v1 is vet.time and v2 is vet.cns
+```{r}
+# create vectors
+vet.time <- vets$V1
+vet.cns <- vets$V2
+vet.Surv <- Surv(vet.time, vet.cns)
+# print vet.Surv
+vet.Surv
+```
+## Calculate Mean of vet.time
+```{r}
+mean(vet.time)
+```
+According to the data provided, we know that it is biased because these are some censored values that affect the mean so that the mean of sampling distribution is not approriate.
+
+## More Calculatons
+```{r}
+sum(vet.cns)
+sum(vet.time*vet.cns)
+```
+Interpretations:
+sum of vet.cns means there are 128 events occured and 9 censored, since for the censored portion, it will be added 0 each time.
+sum of vet.time*vet.cns is the sum of time (total days) that the events occured, since censored value will be multiplied by 0 every time.
+
+## Calculate mean of vet.surv
+```{r}
+mean(vet.Surv)
+```
+This mean will not be affected by the censored values to obtain the true level of data, since it excludes the data of the censored and only includes the events happened.
+
+## 2
+## Read the data
+```{r}
+retire <- read.table("retire.txt", header=TRUE,skip=2)
+```
+
+In this case
+```{r}
+# create vectors
+ret.time <- retire$time
+ret.death <- retire$death
+ret.surv <- Surv(ret.time, ret.death)
+ret.surv
+```
+## Kaplan–Meier estimate
+```{r}
+retire.fit <- survfit(ret.surv ~ 1)
+retire.fit
+retire.fit$surv < 0.75
+retire.fit$time
+
+```
+## Get the Plot (with confidence Intervals)
+```{r}
+plot(retire.fit,
+main="Kaplan-Meier Curves \n for subjects living at a retirement home (with Confidence Intervals)",
+xlab="Time living at a retirement house(until death) \n (in days, weeks, etc.)",
+ylab="S(t)",
+conf.int=T,
+col="red")
+```
+## Get the Plot (without confidence Intervals)
+```{r}
+plot(retire.fit,
+main="Kaplan-Meier Curves \n for subjects living at a retirement home (without Confidence Intervals)",
+xlab="Time living at a retirement house(until death) \n (in days, weeks, etc.)",
+ylab="S(t)",
+conf.int=F,
+col="blue")
+```
+## Summary
+```{r}
+summary(retire.fit)
+```
+Accordingly, there is 95% confidence in deciding the possibility of surviving past 50 month between 80.2% and 87.5% and the probability of surviving past 50 months in this sample is about 0.837.
