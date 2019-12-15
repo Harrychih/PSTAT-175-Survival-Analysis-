@@ -1,0 +1,21 @@
+---
+title: "Animal Shelter Outcomes \n for Labradors in Austin Animal Shelter"
+author: 
+- "Demi Dang"
+- "Rosalia Hernandez"
+- "Yanjie Qi"
+date: "11/13/2019"
+header-includes:
+- \usepackage{titling}
+- \pretitle{\begin{center}\LARGE\includegraphics[width=4cm]{UCSBseal.jpg}\\[\bigskipamount]}
+- \posttitle{\end{center}}
+abstract: |
+  This is the abstract.
+
+  It consists of two paragraphs.
+output: pdf_document
+documentclass: report
+---
+
+\newpage
+## Animal Shelter Outcomes

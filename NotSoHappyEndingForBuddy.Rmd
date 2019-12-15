@@ -1,0 +1,33 @@
+---
+title: "Not So Happy Ending for Buddy: \n Labrador Adoption Rates at Austin Animal Center"
+author: 
+- "Demi Dang"
+- "Rosalia Hernandez"
+- "Yanjie Qi"
+date: "11/13/2019"
+header-includes:
+- \usepackage{titling}\usepackage{float}
+- \pretitle{\begin{center}\LARGE\includegraphics[width=6cm]{UCSBseal.jpg}\\[\bigskipamount]}
+- \posttitle{\end{center}}
+abstract: |
+  Although Labradors are widely viewed as one of the most popular breeds in the United States, they are also a popular breed found in animal shelters [https://www.cleartheshelters.com](https://www.cleartheshelters.com/10-Most-Adoptable-Dog-Breeds-in-America-375215521.html). Taking a look at the outcomes of over 6,000 Labradors in the Austin Animal Center (the largest "no-kill" animal shelter in the U.S.), we build a Cox Proportional Hazards model to see how neuter status affects Labrador adoption rates.   
+output: 
+  pdf_document:
+    latex_engine: xelatex
+documentclass: report
+---
+\newpage
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE,fig.pos = 'H')
+library(dplyr)
+library(survival)
+#install.packages("tidyverse")
+#install.packages("ggplot2")
+library(tidyverse)
+library(ggplot2)
+#install.packages("survminer")
+library(survminer)
+library(knitr)
+#library(gridExtra)
+```
